@@ -90,6 +90,18 @@ class hyperMonkey extends Component {
     });
   }
 
+  _nextWeekday (current) {
+    if (current === 6) {
+      return 0;
+    }
+    return current + 1;
+  }
+
+  renderScheduleItem ({minutes, weekday}) {
+    const { timeGrid } = this.state;
+    return <Text key={minutes}>{`${timeGrid[minutes].time} : ${timeGrid[minutes].schedule[weekday]}`}</Text>;
+  }
+
   renderSchedule () {
     const { timeGrid } = this.state;
     const weekday = moment().isoWeekday() - 1;
@@ -106,9 +118,38 @@ class hyperMonkey extends Component {
       ? `${nextClassSchedule.time} : ${nextClassToday}`
       : 'No classes scheduled in the day for now.';
 
+    const upcomingClasses = atMinuteSinceMidnight
+      .filter(minutes => minutes !== nextClassAt && target - minutes < 0 && timeGrid[minutes].schedule[weekday])
+      .map(minutes => {
+        return this.renderScheduleItem({minutes, weekday});
+      });
+
+    const nextWeekday = this._nextWeekday(weekday);
+
+    const classesTomorrow = atMinuteSinceMidnight
+      .filter(minutes => timeGrid[minutes].schedule[nextWeekday])
+      .map(minutes => {
+        return this.renderScheduleItem({minutes, weekday: nextWeekday});
+      });
+
     return (
       <View>
-        <Text>{nextClass}</Text>
+        <View style={styles.classesBlock}>
+          <Text style={styles.heading}>Next Class Today</Text>
+          <Text>{nextClass}</Text>
+        </View>
+        {
+          upcomingClasses.length ? (
+            <View style={styles.classesBlock}>
+              <Text style={styles.heading}>Upcoming Classes Today</Text>
+              {upcomingClasses}
+            </View>
+          ) : null
+        }
+        <View style={styles.classesBlock}>
+          <Text style={styles.heading}>Tomorrow</Text>
+          {classesTomorrow}
+        </View>
       </View>
     )
   }
@@ -143,6 +184,13 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 5,
   },
+  heading: {
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  classesBlock: {
+    marginBottom: 10
+  }
 });
 
 AppRegistry.registerComponent('hyperMonkey', () => hyperMonkey);
