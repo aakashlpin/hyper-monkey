@@ -9,6 +9,7 @@ import React, {
   StyleSheet,
   Text,
   View,
+  AppState,
   ProgressBarAndroid
 } from 'react-native';
 
@@ -21,10 +22,22 @@ class hyperMonkey extends Component {
     this.state = {
       isFetching: true
     };
+    this._handleAppStateChange = this._handleAppStateChange.bind(this)
   }
 
-  componentWillMount () {
+  componentDidMount () {
     this.getSchedule();
+    AppState.addEventListener('change', this._handleAppStateChange);
+  }
+
+  componentWillUnmount () {
+    AppState.removeEventListener('change', this._handleAppStateChange);
+  }
+
+  _handleAppStateChange (currentAppState) {
+    if (currentAppState === 'active') {
+      this.getSchedule();
+    }
   }
 
   getMinutesSinceMidnight (timeString) {
@@ -36,6 +49,11 @@ class hyperMonkey extends Component {
   }
 
   getSchedule () {
+    this.setState({
+      ...this.state,
+      isFetching: true
+    });
+
     return fetch('http://www.hypermonkey.in/index.php?page=schedule')
     .then(r => r.text())
     .then(r => {
@@ -57,7 +75,10 @@ class hyperMonkey extends Component {
           return o;
         }
 
-        o[this.getMinutesSinceMidnight(time)] = timeColumns;
+        o[this.getMinutesSinceMidnight(time)] = {
+          time, schedule: timeColumns
+        };
+
         return o;
 
       }, {});
@@ -70,15 +91,18 @@ class hyperMonkey extends Component {
   }
 
   renderSchedule () {
-    const weekday = moment().format('E') - 1;
-    const atMinuteSinceMidnight = Object.keys(this.state.timeGrid);
+    const { timeGrid } = this.state;
+    const weekday = moment().isoWeekday() - 1;
+    const atMinuteSinceMidnight = Object.keys(timeGrid).map(num => Number(num));
 
-    const now = moment.utc();
+    const now = moment();
     const target = now.hours() * 60 + now.minutes();
 
-    const nextClassAt = atMinuteSinceMidnight.sort().find(minute => target - minute < 0);
+    const nextClassAt = atMinuteSinceMidnight.find(minute => target - minute < 0);
+    const nextClassSchedule = timeGrid[nextClassAt];
 
-    const nextClass = this.state.timeGrid[nextClassAt][weekday] || 'No Classes scheduled in the day now';
+    const nextClass = `${nextClassSchedule.time} : ${nextClassSchedule.schedule[weekday]}`
+      || 'No classes scheduled in the day for now.';
 
     return (
       <View>
