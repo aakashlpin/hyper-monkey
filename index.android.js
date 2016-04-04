@@ -111,7 +111,7 @@ class hyperMonkey extends Component {
     const target = now.hours() * 60 + now.minutes();
 
     let nextClass = 'No more classes scheduled for the day.';
-    const nextClassAt = atMinuteSinceMidnight.find(minute => target - minute < 0);
+    const nextClassAt = atMinuteSinceMidnight.find(minute => target - minute < 0 && timeGrid[minute].schedule[weekday]);
     if (nextClassAt) {
       const nextClassSchedule = timeGrid[nextClassAt];
       const nextClassToday = nextClassSchedule.schedule[weekday];
